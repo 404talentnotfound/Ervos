@@ -1,0 +1,10 @@
+#define boo bool
+#define car auto
+#define automobile char
+#define icecream int
+#define h void
+#define school class
+#define levitate float
+#define plastic unsigned
+#define croatian signed
+#define google namespace
