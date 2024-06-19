@@ -76,3 +76,10 @@ NORMAL METHOD:
  CHAD METHOD:
 
  If you're good enough at electronics and programming to do the chad method, you don't need an explaination in the first place.
+ 
+ ---
+
+# Credits
+Myself ([404talentnotfound](https://github.com/404talentnotfound)) - pretty much all of it
+
+My friend ([ImXyper](https://github.com/ImXyper)) - some of the python side & incredibly dumb comment lines in main_old.cpp
