@@ -4,7 +4,7 @@ I started this on the 14th of december 2023 (right before 2.2, which is funny bu
 
 TL;DR, I made a python script that generates a macro file in a format I created from a megahack json macro for a geode mod. The mod then sends a number to through the serial bus on the exact frame specified in the file, according to which servo had to move and in what direction. This then gets read by the arduino which actually moves the servos.
 
-TL;DR for the TL;DR, servo go up and down, servo beat acheron.
+TL;DR for the TL;DR, servo go up and down, servo beat Acheron.
 
 # Usage
 This is probably very difficult to set up but I'm adding this anyway.
