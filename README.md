@@ -62,7 +62,7 @@ NORMAL METHOD:
 
 7. Create a directory/folder at the root of your C drive called "macros"
 
-8. Create a file in the C:\\macros directory called "port.txt" and write the com port of the arduino in it.
+8. Create a file in the C:\\macros directory called "port.txt" and write the com port of the arduino in it, e.g. "COM3".
 
 9. Make/get a megahack macro json file, if you bot a level with megahack you should have the option to export it as a json file.
 
