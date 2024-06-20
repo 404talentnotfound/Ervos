@@ -103,7 +103,7 @@ void play_macro(vector<vector<int>> macro) {
 		for (int i = 0; i < macro.size(); i++) {
 			// check if next instruction is less than 12 frames away from the last one (to avoid trying to move too quickly)
 			int current_frame = frame;
-			if (frame - macro[i][1] < 12) {
+			if (macro[i][1] - frame < 12) {
 				// wait 12 frames
 				while (frame < current_frame + 12) if (!should_play) break;
 			}
