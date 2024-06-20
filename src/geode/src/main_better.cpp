@@ -105,7 +105,7 @@ void play_macro(vector<vector<int>> macro) {
 			int current_frame = frame;
 			if (macro[i][1] - frame < 12) {
 				// wait 12 frames
-				while (frame < current_frame + 12) if (!should_play) break;
+				while (current_frame - frame > 12) if (!should_play) break;
 			}
 			else {
 				// wait until the frame of the next instruction
