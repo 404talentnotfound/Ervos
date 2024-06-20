@@ -37,29 +37,29 @@ void loop() {
       // move the according servo to a specific degree angle. NOTE: the delays are there to make sure the servos move in time before moving on, this might just be an issue with unreliable servos
       case '0':
         left_servo.write(120);
-        delay(50);
+        delay(10);
         break;
       case '1':
         left_servo.write(100);
-        delay(50);
+        delay(10);
         break;
 
       case '2':
         middle_servo.write(120);
-        delay(50);
+        delay(10);
         break;
       case '3':
         middle_servo.write(100);
-        delay(50);
+        delay(10);
         break;
 
       case '4':
         right_servo.write(120);
-        delay(50);
+        delay(10);
         break;
       case '5':
         right_servo.write(140);
-        delay(50);
+        delay(10);
         break;
 
       // reset all servos to initial position
