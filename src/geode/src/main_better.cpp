@@ -173,10 +173,10 @@ class $modify(PlayerObject) {
 			should_play = false;
 
 			// this creates a thread to reset the position of the servos. the sleep_for is there to keep the message from being sent at the exact same time as a click/release, as that would cause the servos to move weirdly or not move at all.
-			std::thread PRO = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
+			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
 
 			// this detaches the thread from the main thread so it gets terminated when finished. not calling this crashes the game.
-			PRO.detach();
+			restart_thread.detach();
 		}
 	}
 };
@@ -191,8 +191,8 @@ class $modify(PlayLayer) {
 			frame = 0;
 			should_play = false;
 
-			std::thread PRO = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
-			PRO.detach();
+			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
+			restart_thread.detach();
 		}
 		else {
 			PlayLayer::levelComplete();
@@ -208,6 +208,9 @@ class $modify(PlayLayer) {
 			// set the level name variable to the one being played
 			current_level = this->m_level->m_levelName;
 			should_play = true;
+
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread.detach();
 		}
 		else {
 			PlayLayer::startGame();
@@ -220,9 +223,27 @@ class $modify(PlayLayer) {
 			PlayLayer::resumeAndRestart(p0);
 			should_play = true;
 			frame = 0;
+
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread.detach();
 		}
 		else {
 			PlayLayer::resumeAndRestart(p0);
+		}
+	}
+
+	// this function gets called when a level gets restarted automatically
+	void delayedResetLevel() {
+		if (activated) {
+			PlayLayer::delayedResetLevel();
+			should_play = true;
+			frame = 0;
+
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread.detach();
+		}
+		else {
+			PlayLayer::delayedResetLevel();
 		}
 	}
 
@@ -232,7 +253,9 @@ class $modify(PlayLayer) {
 			PlayLayer::pauseGame(p0);
 			should_play = false;
 			frame = 0;
-			arduino->writeSerialPort("6", MAX_DATA_LENGTH);
+			
+			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
+			restart_thread.detach();
 		}
 		else {
 			PlayLayer::pauseGame(p0);
