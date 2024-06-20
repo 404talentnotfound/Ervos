@@ -100,7 +100,7 @@ void play_macro(vector<vector<int>> macro) {
 
 		for (int i = 0; i < macro.size(); i++) {
 			// wait until the frame of the next instruction
-			while (frame < macro[i][2]) continue;
+			while (frame < macro[i][1]) continue;
 
 			if (should_play) {
 				if (macro[i][0] == 2) {
@@ -253,7 +253,7 @@ class $modify(PlayLayer) {
 			PlayLayer::pauseGame(p0);
 			should_play = false;
 			frame = 0;
-			
+
 			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
 			restart_thread.detach();
 		}
