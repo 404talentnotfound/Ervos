@@ -101,8 +101,16 @@ void play_macro(vector<vector<int>> macro) {
 		bool right_button_state = false;
 
 		for (int i = 0; i < macro.size(); i++) {
-			// wait until the frame of the next instruction
-			while (frame < macro[i][1]) if (!should_play) { break; };
+			// check if next instruction is less than 12 frames away from the last one (to avoid trying to move too quickly)
+			int current_frame = frame;
+			if (frame - macro[i][1] < 12) {
+				// wait 12 frames
+				while (frame < current_frame + 12) if (!should_play) break;
+			}
+			else {
+				// wait until the frame of the next instruction
+				while (frame < macro[i][1]) if (!should_play) break;
+			}
 
 			if (should_play) {
 				if (macro[i][0] == 2) {
