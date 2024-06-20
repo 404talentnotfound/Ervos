@@ -16,6 +16,8 @@ using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
 
+std::thread play_thread;
+
 // global variable to keep track of the size of the current macro
 int msize = 0;
 
@@ -43,12 +45,12 @@ vector<vector<int>> get_macro(gd::string level_name) {
     int macro_size;
 	int input;
 	int frame;
-	std::stringstream file;
+	stringstream file;
 	std::string name = level_name.c_str();
 	file << "C:\\macros\\" << name << ".soup";
 
 	// if a macro for a level can't be found, it opens backup.soup. this is just to prevent crashes.
-	if (!std::filesystem::exists(file.str())) {
+	if (!filesystem::exists(file.str())) {
 		macro_file.open("C:\\macros\\backup.soup");
 		macro_file >> macro_size;
 		msize = macro_size;
@@ -100,7 +102,7 @@ void play_macro(vector<vector<int>> macro) {
 
 		for (int i = 0; i < macro.size(); i++) {
 			// wait until the frame of the next instruction
-			while (frame < macro[i][1]) continue;
+			while (frame < macro[i][1]) if (!should_play) { break; };
 
 			if (should_play) {
 				if (macro[i][0] == 2) {
@@ -127,6 +129,9 @@ void play_macro(vector<vector<int>> macro) {
 					right_button_state = !right_button_state;
 				}
 			}
+			else {
+				break;
+			}
 		}
 	}
 }
@@ -141,7 +146,6 @@ class $modify(MenuLayer) {
 			
 			std::string portname;
 			portfile >> portname;
-			std::cerr << portname;
 			arduino = new SerialPort(portname.c_str());
 
 			// wait for connection to be established before sending a message.
@@ -209,7 +213,7 @@ class $modify(PlayLayer) {
 			current_level = this->m_level->m_levelName;
 			should_play = true;
 
-			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
@@ -224,7 +228,7 @@ class $modify(PlayLayer) {
 			should_play = true;
 			frame = 0;
 
-			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
@@ -239,7 +243,7 @@ class $modify(PlayLayer) {
 			should_play = true;
 			frame = 0;
 
-			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
