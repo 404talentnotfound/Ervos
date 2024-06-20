@@ -6,6 +6,9 @@ TL;DR, I made a python script that generates a macro file in a format I created 
 
 TL;DR for the TL;DR, servo go up and down, servo beat Acheron.
 
+# Showcases
+[first two levels in zip lash](https://www.youtube.com/watch?v=4Cht7uo_oFA)
+
 # Usage
 This is probably very difficult to set up but I'm adding this anyway.
 There's two ways you can make this, the normal way (copying my exact setup without changing too much) or the chad way (set up a servo on an input device you already own without buying a sayodevice or a 3d printer for this stupid ass project).
