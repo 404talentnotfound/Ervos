@@ -7,6 +7,8 @@ TL;DR, I made a python script that generates a macro file in a format I created 
 TL;DR for the TL;DR, servo go up and down, servo beat Acheron.
 
 # Showcases
+[backstory](https://www.youtube.com/watch?v=pu1iKGEJ004)
+
 [first two levels in zip lash](https://www.youtube.com/watch?v=4Cht7uo_oFA)
 
 # Usage
