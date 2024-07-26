@@ -16,8 +16,6 @@ using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
 
-std::thread play_thread;
-
 // global variable to keep track of the size of the current macro
 int msize = 0;
 
@@ -26,6 +24,21 @@ int msize = 0;
 
 // this is a text file that contains the usb port you plug the arduino into.
 const char* portfile_name = "C:\\macros\\port.txt";
+
+/*
+this variable keeps track of if a macro should be played, so that if you want to play it won't start moving the servos.
+it's also used for checking if the serial port is open, rather than sending a message when it's closed and crashing the game.
+*/
+bool activated = false;
+SerialPort *arduino;
+
+// this variable is used to check if the macro should continue being played, so if you pause or exit a level it won't keep going.
+bool should_play = true;
+
+gd::string current_level;
+
+// this is the frame counter, it starts counting when your player gets initialised and resets when you exit a level.
+int frame = 0;
 
 /*
 get macro from the C:\\macros directory, using the name of the level being played to find the file.
@@ -79,21 +92,6 @@ vector<vector<int>> get_macro(gd::string level_name) {
     return readable_macro;
 }
 
-/*
-this variable keeps track of if a macro should be played, so that if you want to play it won't start moving the servos.
-it's also used for checking if the serial port is open, rather than sending a message when it's closed and crashing the game.
-*/
-bool activated = false;
-SerialPort *arduino;
-
-// this variable is used to check if the macro should continue being played, so if you pause or exit a level it won't keep going.
-bool should_play = true;
-
-gd::string current_level;
-
-// this is the frame counter, it starts counting when your player gets initialised and resets when you exit a level.
-int frame = 0;
-
 void play_macro(vector<vector<int>> macro) {
 	if (activated) {
 		bool left_button_state = false;
@@ -101,16 +99,8 @@ void play_macro(vector<vector<int>> macro) {
 		bool right_button_state = false;
 
 		for (int i = 0; i < macro.size(); i++) {
-			// check if next instruction is less than 12 frames away from the last one (to avoid trying to move too quickly)
-			int current_frame = frame;
-			if (macro[i][1] - frame < 12) {
-				// wait 12 frames
-				while (current_frame - frame > 12) if (!should_play) break;
-			}
-			else {
-				// wait until the frame of the next instruction
-				while (frame < macro[i][1]) if (!should_play) break;
-			}
+			// wait until the frame of the next instruction
+			while (frame < macro[i][1]) if (!should_play) break;
 
 			if (should_play) {
 				if (macro[i][0] == 2) {
@@ -157,7 +147,7 @@ class $modify(MenuLayer) {
 			arduino = new SerialPort(portname.c_str());
 
 			// wait for connection to be established before sending a message.
-			sleep_for(milliseconds(250));
+			sleep_for(milliseconds(100));
 			arduino->writeSerialPort("6", MAX_DATA_LENGTH);
 		}
 		else {
@@ -173,7 +163,6 @@ class $modify(PlayerObject) {
 	void update(float p0) {
 		// call the original update function. because i'm modifying it, the game wouldn't do anything other than what's written down here. calling the original function makes it so the game still updates the player correctly. 
 		PlayerObject::update(p0);
-
 		// update the frame count.
 		frame++;
 	}
@@ -221,7 +210,7 @@ class $modify(PlayLayer) {
 			current_level = this->m_level->m_levelName;
 			should_play = true;
 
-			play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
@@ -236,7 +225,7 @@ class $modify(PlayLayer) {
 			should_play = true;
 			frame = 0;
 
-			play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
@@ -251,11 +240,25 @@ class $modify(PlayLayer) {
 			should_play = true;
 			frame = 0;
 
-			play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
 			PlayLayer::delayedResetLevel();
+		}
+	}
+
+	void resetLevel() {
+		if (activated) {
+			PlayLayer::resetLevel();
+			should_play = true;
+			frame = 0;
+
+			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
+			play_thread.detach();
+		}
+		else {
+			PlayLayer::resetLevel();
 		}
 	}
 
