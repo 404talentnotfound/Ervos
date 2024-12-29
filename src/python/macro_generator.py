@@ -19,10 +19,8 @@ try:
 except:
     fps = 240
 
-print(fps, json_macro["level"]["id"])
-
-clickdelay = 6
-releasedelay = 4
+clickdelay = 2
+releasedelay = 2
 
 clicks_on_this_frame = 0
 
@@ -72,8 +70,6 @@ try:
     num = sys.argv[3]
 except:
     pass
-
-print(level_name)
 
 if level_name == "":
     level_name = input("what's the level name?: ")
