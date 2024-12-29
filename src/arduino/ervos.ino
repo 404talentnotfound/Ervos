@@ -1,80 +1,36 @@
-#include <Servo.h>
-#include <Wire.h>
-
-// define servo pins
-#define LeftServoPin 9
-#define MiddleServoPin 10
-#define RightServoPin 11
-
-// create servo objects
-Servo left_servo;
-Servo middle_servo;
-Servo right_servo;
+int solenoidPin = 2;
+bool currentState = false;
 
 void setup() {
-  // initialise serial communication
-  Serial.begin(115200);
-
-  // attach servos
-  left_servo.attach(LeftServoPin);
-  middle_servo.attach(MiddleServoPin);
-  right_servo.attach(RightServoPin);
-
-  // move servos in place
-  left_servo.write(120);
-  middle_servo.write(120);
-  right_servo.write(120);
+  Serial.begin(1000000);
+  pinMode(solenoidPin, OUTPUT);
 }
 
 void loop() {
-  // check if serial port can be read
-  if (Serial.available()) {
-    // read a single byte from serial
-    int incomingByte = Serial.read();
+  // Flush any stray data before reading new data
+  while (Serial.available() > 1) {
+    Serial.read();  // Clear buffer of unintended data
+  }
 
-    // check what byte was sent
+  if (Serial.available() > 0) {
+    char incomingByte = Serial.read();
+
     switch (incomingByte) {
-      case '0':
-        left_servo.write(110);
-        delay(20);
-        break;
       case '1':
-        left_servo.write(95);
-        delay(20);
+        digitalWrite(solenoidPin, !currentState);
+        currentState = !currentState;
         break;
-
       case '2':
-        middle_servo.write(105);
-        delay(30);
+        digitalWrite(solenoidPin, !currentState);
+        currentState = !currentState;
+        delayMicroseconds(3000);
+        digitalWrite(solenoidPin, !currentState);
+        currentState = !currentState;
         break;
-      case '3':
-        middle_servo.write(85);
-        delay(30);
-        break;
-
-      case '4':
-        right_servo.write(125);
-        delay(20);
-        break;
-      case '5':
-        right_servo.write(140);
-        delay(20);
-        break;
-
-      // reset all servos to initial position
       case '6':
-        left_servo.attach(LeftServoPin);
-        middle_servo.attach(MiddleServoPin);
-        right_servo.attach(RightServoPin);
-
-        left_servo.write(110);
-        middle_servo.write(105);
-        right_servo.write(125);
-
-        delay(35);
-        
+        currentState = false;
+        digitalWrite(solenoidPin, currentState);
         break;
     }
   }
 }
-
