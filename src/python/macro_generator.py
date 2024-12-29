@@ -65,11 +65,8 @@ level_name = json_macro["level"]["name"]
 
 num = ""
 
-try:
+if sys.argc > 2:
     level_name = sys.argv[2]
-    num = sys.argv[3]
-except:
-    pass
 
 if level_name == "":
     level_name = input("what's the level name?: ")
