@@ -1,51 +1,90 @@
-import json,sys
+import sys,msgpack,json
 
 # read json file from command line argument
-json_file = open(sys.argv[1],"r").read()
-json_macro = json.loads(json_file)
+macro_file = open(sys.argv[1],"rb").read()
+try:
+    json_macro = msgpack.unpackb(macro_file)
+except:
+    json_macro = json.loads(macro_file)
 
 # create an empty list to append inputs to later
 new_macro = []
 
-# get every input from the json file (both clicks and releases)
-for input in json_macro["inputs"]:
+jump_pressed = False
+left_pressed = False
+right_pressed = False
+
+try:
+    fps = json_macro["framerate"]
+except:
+    fps = 240
+
+print(fps, json_macro["level"]["id"])
+
+clickdelay = 6
+releasedelay = 4
+
+clicks_on_this_frame = 0
+
+click_frames = [f["frame"] for f in json_macro["inputs"] if f["down"]]
+release_frames = [f["frame"] for f in json_macro["inputs"] if not f["down"]]
+
+for i, click in enumerate(click_frames):
+    clicks_on_this_frame += 1
     try:
-        # check which button is being pressed/released
-        match input["btn"]:
-            case 1:
-                # append the input key and frame to the macro
-                new_macro.append("1")
-                new_macro.append(input["frame"])
+        if release_frames[i] > click:
+            if clicks_on_this_frame > 1:
+                new_macro.append(2)
+                new_macro.append(click-clickdelay)
+                new_macro.append(clicks_on_this_frame)
+            else:
+                new_macro.append(1)
+                new_macro.append(click-clickdelay)
+                new_macro.append(1)
 
-            case 2:
-                new_macro.append("2")
-                new_macro.append(input["frame"])
+                new_macro.append(1)
+                new_macro.append(release_frames[i]-releasedelay)
+                new_macro.append(1)
 
-            case 3:
-                new_macro.append("3")
-                new_macro.append(input["frame"])
-            
-            # if previous cases don't match, just continue
-            case _:
-                continue
-    
-    # if an exception occurs, capture and print it before continuing
-    except Exception as e:
-        print(e)
-        continue
+            clicks_on_this_frame = 0
 
-# get the level name
+        elif len(click_frames) > i+1:
+            if click_frames[i+1] > click:
+                new_macro.append(2)
+                new_macro.append(click-clickdelay)
+                new_macro.append(1)
+                clicks_on_this_frame = 0
+
+        elif len(click_frames) == i+1:
+            new_macro.append(2)
+            new_macro.append(click-clickdelay)
+            new_macro.append(1)
+            clicks_on_this_frame = 0
+    except:
+        pass
+
 level_name = json_macro["level"]["name"]
 
-# create/open file
-new_macro_file = open(f"C:\\macros\\{level_name}.soup", "w")
+num = ""
 
-# write macro length to file (divided by two because every input uses two lines)
-new_macro_file.write(str(round(len(new_macro) / 2)) + '\n')
+try:
+    level_name = sys.argv[2]
+    num = sys.argv[3]
+except:
+    pass
 
-# write macro to file
+print(level_name)
+
+if level_name == "":
+    level_name = input("what's the level name?: ")
+
+new_macro_file = open(f"C:\\macros\\{level_name}.soup{num}", "w")
+
+new_macro_file.write(str(round(len(new_macro) / 3)) + '\n')
+
 for i in new_macro:
     new_macro_file.write(str(i) + "\n")
 
-# close file
 new_macro_file.close()
+
+print(f'saved to "C:\\macros\\{level_name}.soup{num}"')
