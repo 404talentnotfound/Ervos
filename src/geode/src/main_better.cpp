@@ -2,12 +2,15 @@
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/modify/GJBaseGameLayer.hpp>
 #include <iostream>
 #include "serial_library/include/SerialPort.hpp"
 #include <string>
 #include <vector>
 #include <chrono>
 #include <fstream>
+#include <cstdlib> 
+#include <ctime> 
 #include <thread>
 
 using namespace geode::prelude;
@@ -19,11 +22,12 @@ using namespace std::this_thread;
 // global variable to keep track of the size of the current macro
 int msize = 0;
 
-// amount of bytes for messages sent to the arduino
-#define MAX_DATA_LENGTH 1
-
 // this is a text file that contains the usb port you plug the arduino into.
 const char* portfile_name = "C:\\macros\\port.txt";
+const char* swiftclickfile_name = "C:\\macros\\swift.txt";
+
+// amount of bytes for messages sent to the arduino
+#define MAX_DATA_LENGTH 1
 
 /*
 this variable keeps track of if a macro should be played, so that if you want to play it won't start moving the servos.
@@ -35,10 +39,13 @@ SerialPort *arduino;
 // this variable is used to check if the macro should continue being played, so if you pause or exit a level it won't keep going.
 bool should_play = true;
 
+int framecount = 0;
+
+float fps = 240;
+
 gd::string current_level;
 
-// this is the frame counter, it starts counting when your player gets initialised and resets when you exit a level.
-int frame = 0;
+int swiftclick;
 
 /*
 get macro from the C:\\macros directory, using the name of the level being played to find the file.
@@ -53,78 +60,50 @@ example.soup:
 (etc..)
 */
 vector<vector<int>> get_macro(gd::string level_name) {
-	ifstream macro_file;
+    ifstream macro_file;
     vector<vector<int>> readable_macro;
     int macro_size;
-	int input;
-	int frame;
-	stringstream file;
-	std::string name = level_name.c_str();
-	file << "C:\\macros\\" << name << ".soup";
+    int input;
+    int frame;
+    int repetitions;
+    stringstream file;
+    std::string name = level_name.c_str();
+    file << "C:\\macros\\" << name << ".soup";
 
-	// if a macro for a level can't be found, it opens backup.soup. this is just to prevent crashes.
-	if (!filesystem::exists(file.str())) {
-		macro_file.open("C:\\macros\\backup.soup");
-		macro_file >> macro_size;
-		msize = macro_size;
-		for(int i = 0; i < macro_size; i++) {
-			macro_file >> input;
-			macro_file >> frame;
-			readable_macro.push_back({input, frame});
-		}
-		macro_file.close();
-		msize = readable_macro.size();
+	ifstream swiftclickfile;
+	swiftclickfile.open(swiftclickfile_name);
+	swiftclickfile >> swiftclick;
 
-		return readable_macro;
-	}
-
-	// since the previous if statement ends with a return, an else statement is not needed.
-	macro_file.open(file.str());
+    macro_file.open(file.str());
     macro_file >> macro_size;
     msize = macro_size;
-    for(int i = 0; i < macro_size; i++) {
+    for (int i = 0; i < macro_size; i++) {
         macro_file >> input;
-		macro_file >> frame;
-		readable_macro.push_back({input, frame});
+        macro_file >> frame;
+        macro_file >> repetitions;
+        readable_macro.push_back({input, frame, repetitions});
     }
-	macro_file.close();
-	msize = readable_macro.size();
+    macro_file.close();
+    msize = readable_macro.size();
     return readable_macro;
 }
 
+
 void play_macro(vector<vector<int>> macro) {
 	if (activated) {
-		bool left_button_state = false;
-		bool middle_button_state = false;
-		bool right_button_state = false;
-
 		for (int i = 0; i < macro.size(); i++) {
 			// wait until the frame of the next instruction
-			while (frame < macro[i][1]) if (!should_play) break;
+			while (PlayLayer::get()->m_gameState.m_currentProgress < macro[i][1] && should_play);
 
 			if (should_play) {
-				if (macro[i][0] == 2) {
-					if (left_button_state)
-						arduino->writeSerialPort("0", MAX_DATA_LENGTH);
-					else 
+				if (macro[i][0] == 1) arduino->writeSerialPort("1", MAX_DATA_LENGTH);
+				else if (macro[i][0] == 2) {
+					for (int j = 0; j < macro[i][2]; j++) {
 						arduino->writeSerialPort("1", MAX_DATA_LENGTH);
-					left_button_state = !left_button_state;
-				}
-
-				else if (macro[i][0] == 1) {
-					if (middle_button_state)
-						arduino->writeSerialPort("2", MAX_DATA_LENGTH);
-					else 
-						arduino->writeSerialPort("3", MAX_DATA_LENGTH);
-					middle_button_state = !middle_button_state;
-				}
-				
-				else if (macro[i][0] == 3){
-					if (right_button_state)
-						arduino->writeSerialPort("4", MAX_DATA_LENGTH);
-					else 
-						arduino->writeSerialPort("5", MAX_DATA_LENGTH);
-					right_button_state = !right_button_state;
+						auto time = std::chrono::steady_clock::now();
+						while (std::chrono::steady_clock::now() - time < microseconds(swiftclick)) continue;
+						arduino->writeSerialPort("1", MAX_DATA_LENGTH);
+					}
 				}
 			}
 			else {
@@ -158,20 +137,12 @@ class $modify(MenuLayer) {
 };
 
 class $modify(PlayerObject) {
-
-	// this function gets called every time the player gets updated, which in this case is every frame.
-	void update(float p0) {
-		// call the original update function. because i'm modifying it, the game wouldn't do anything other than what's written down here. calling the original function makes it so the game still updates the player correctly. 
-		PlayerObject::update(p0);
-		// update the frame count.
-		frame++;
-	}
-
 	// this function gets called when the player dies, i'm using it to reset the playthrough.
 	void playerDestroyed(bool p0) {
 		if (activated) {
-			frame = 0;
 			should_play = false;
+
+			framecount = 0;
 
 			// this creates a thread to reset the position of the servos. the sleep_for is there to keep the message from being sent at the exact same time as a click/release, as that would cause the servos to move weirdly or not move at all.
 			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
@@ -188,9 +159,10 @@ class $modify(PlayLayer) {
 	void levelComplete() {
 		if (activated) {
 			PlayLayer::levelComplete();
-			
-			frame = 0;
+
 			should_play = false;
+
+			framecount = 0;
 
 			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
 			restart_thread.detach();
@@ -200,65 +172,35 @@ class $modify(PlayLayer) {
 		}
 	}
 
-	// this function gets called when a level is started.
-	void startGame() {
-		if (activated) {
-			PlayLayer::startGame();
-			frame = 0;
-
-			// set the level name variable to the one being played
-			current_level = this->m_level->m_levelName;
-			should_play = true;
-
-			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
-			play_thread.detach();
-		}
-		else {
-			PlayLayer::startGame();
-		}
-	}
-
-	// this function gets called when a level is restarted from the pause menu.
-	void resumeAndRestart(bool p0) {
-		if (activated) {
-			PlayLayer::resumeAndRestart(p0);
-			should_play = true;
-			frame = 0;
-
-			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
-			play_thread.detach();
-		}
-		else {
-			PlayLayer::resumeAndRestart(p0);
-		}
-	}
-
-	// this function gets called when a level gets restarted automatically
-	void delayedResetLevel() {
-		if (activated) {
-			PlayLayer::delayedResetLevel();
-			should_play = true;
-			frame = 0;
-
-			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
-			play_thread.detach();
-		}
-		else {
-			PlayLayer::delayedResetLevel();
-		}
-	}
-
 	void resetLevel() {
 		if (activated) {
 			PlayLayer::resetLevel();
+
+			// set the level name variable to the one being played
+			current_level = PlayLayer::get()->m_level->m_levelName;
+
 			should_play = true;
-			frame = 0;
+
+			framecount = 0;
 
 			std::thread play_thread = std::thread{[&]{ play_macro(get_macro(current_level)); }};
 			play_thread.detach();
 		}
 		else {
 			PlayLayer::resetLevel();
+		}
+	}
+
+	void onQuit() {
+		if (activated) {
+			PlayLayer::onQuit();
+
+			should_play = false;
+
+			framecount = 0;
+		}
+		else {
+			PlayLayer::onQuit();
 		}
 	}
 
@@ -266,11 +208,8 @@ class $modify(PlayLayer) {
 	void pauseGame(bool p0) {
 		if (activated) {
 			PlayLayer::pauseGame(p0);
-			should_play = false;
-			frame = 0;
 
-			std::thread restart_thread = std::thread{[]{ sleep_for(milliseconds(50)); arduino->writeSerialPort("6", MAX_DATA_LENGTH); }};
-			restart_thread.detach();
+			arduino->writeSerialPort("6", MAX_DATA_LENGTH);
 		}
 		else {
 			PlayLayer::pauseGame(p0);
